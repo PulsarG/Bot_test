@@ -1,23 +1,19 @@
 package main
 
 import (
-	//	"flag"
+	"context"
 	"log"
-
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
-
-	// "fyne.io/fyne/v2/canvas"
-	// "fyne.io/fyne/v2/dialog"
-	// "fyne.io/fyne/v2/layout"
-	// "fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	tgClioent "Bot/clients/telegram"
 	"Bot/consumer/event-consumer"
 	"Bot/events/telegram"
 	"Bot/storage/files"
+
+	cnf "github.com/PulsarG/ConfigManager"
 )
 
 // 5708011095:AAHJiuyPCem8MSmZqbKpJCFzR11xT3lEwIk
@@ -30,6 +26,8 @@ const (
 )
 
 var isStart = false
+var ch1 = make(chan string)
+var ctx = context.Background()
 
 //var infoPanel = widget.NewLabel("Bot Stropped")
 
@@ -49,18 +47,31 @@ func mustToken(token string) string {
 	return token
 }
 
-func startBot(token string) {
-	eventsProcessor := telegram.New(tgClioent.New(tgBotHost, mustToken(token)), files.New(storagePage))
+func startBot(ctx context.Context, token string) {
+	select {
+	case <-ctx.Done():
+		log.Print("service hand stopped")
+		return
+	default:
+		eventsProcessor := telegram.New(tgClioent.New(tgBotHost, mustToken(token)), files.New(storagePage))
 
-	log.Print("service started")
+		log.Print("service started")
 
-	consumer := event_consumer.New(eventsProcessor, eventsProcessor, bathSize)
+		consumer := event_consumer.New(eventsProcessor, eventsProcessor, bathSize)
 
-	if err := consumer.Start(); err != nil {
-		log.Fatal("service stopped", err)
+		if err := consumer.Start(); err != nil {
+			log.Fatal("service stopped", err)
+		}
+		isStart = true
 	}
+}
 
-	isStart = true
+func controlBot(ctx context.Context, cancel context.CancelFunc, token string) {
+	go startBot(ctx, token)
+}
+
+func stopBot(cancel context.CancelFunc) {
+	cancel()
 }
 
 func startAppWindow() {
@@ -68,12 +79,16 @@ func startAppWindow() {
 	mainWindow := App.NewWindow("Bot")
 	mainWindow.Resize(fyne.NewSize(250, 150))
 
+	ctx, cancel := context.WithCancel(ctx)
+
 	inputKey := widget.NewPasswordEntry()
 	inputKey.PlaceHolder = "Token"
-	startButton := widget.NewButton("Start", func() { startBot(inputKey.Text) })
+
+	startButton := widget.NewButton("Start", func() { controlBot(ctx, cancel, cnf.GetFromIni("TOKENS", "testBotPulsar")) })
+	stopButton := widget.NewButton("Stop", func() { stopBot((cancel)) })
 	//infoPanel := widget.NewLabel("Bot Stropped")
 
-	cont := container.NewVBox(inputKey, startButton)
+	cont := container.NewVBox(inputKey, startButton, stopButton)
 
 	mainWindow.SetContent(cont)
 	mainWindow.Show()
