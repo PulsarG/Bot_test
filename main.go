@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
-	"log"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
+	"log"
 
 	tgClioent "Bot/clients/telegram"
 	"Bot/consumer/event-consumer"
@@ -29,22 +29,8 @@ var isStart = false
 var ch1 = make(chan string)
 var ctx = context.Background()
 
-//var infoPanel = widget.NewLabel("Bot Stropped")
-
 func main() {
 	startAppWindow()
-}
-
-func mustToken(token string) string {
-	/* token := flag.String("tg-bot-token", "", "token for bot")
-
-	flag.Parse()
-
-	if *token == "" {
-		log.Fatal("bad token")
-	} */
-
-	return token
 }
 
 func startBot(ctx context.Context, token string) {
@@ -53,7 +39,7 @@ func startBot(ctx context.Context, token string) {
 		log.Print("service hand stopped")
 		return
 	default:
-		eventsProcessor := telegram.New(tgClioent.New(tgBotHost, mustToken(token)), files.New(storagePage))
+		eventsProcessor := telegram.New(tgClioent.New(tgBotHost, token), files.New(storagePage))
 
 		log.Print("service started")
 
@@ -70,10 +56,6 @@ func controlBot(ctx context.Context, cancel context.CancelFunc, token string) {
 	go startBot(ctx, token)
 }
 
-func stopBot(cancel context.CancelFunc) {
-	cancel()
-}
-
 func startAppWindow() {
 	App := app.New()
 	mainWindow := App.NewWindow("Bot")
@@ -85,10 +67,8 @@ func startAppWindow() {
 	inputKey.PlaceHolder = "Token"
 
 	startButton := widget.NewButton("Start", func() { controlBot(ctx, cancel, cnf.GetFromIni("TOKENS", "testBotPulsar")) })
-	stopButton := widget.NewButton("Stop", func() { stopBot((cancel)) })
-	//infoPanel := widget.NewLabel("Bot Stropped")
 
-	cont := container.NewVBox(inputKey, startButton, stopButton)
+	cont := container.NewVBox(inputKey, startButton)
 
 	mainWindow.SetContent(cont)
 	mainWindow.Show()
