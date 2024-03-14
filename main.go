@@ -16,7 +16,6 @@ import (
 	cnf "github.com/PulsarG/ConfigManager"
 )
 
-// 5708011095:AAHJiuyPCem8MSmZqbKpJCFzR11xT3lEwIk
 
 const (
 	tgBotHost = "api.telegram.org"
